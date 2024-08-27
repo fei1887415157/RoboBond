@@ -3,6 +3,12 @@ import time
 
 
 
+# GPIO input and output Voltage:
+# High: 1.8 - 3.3 V
+# Low:  0   - 1.8 V
+
+
+
 # Define the GPIO pin number
 pin = 17  # Example GPIO pin number
 
