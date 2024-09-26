@@ -10,8 +10,12 @@ import time
 
 def capture_photo():
     # Capture a photo using libcamera-still
-    # "--hdr"
-    subprocess.run(["libcamera-still", "-o", "Photos/test.jpg", "-t", "1", "--nopreview", "--hdr"], check=True)
+
+    # manual focus, 0-255
+    subprocess.run(["libcamera-still", "-o", "Photos/test.jpg", "-t", "1", "--nopreview", "--hdr", "--lens-position", "20", "--width", "4608", "--height", "2592"], check=True)
+
+    # auo focus
+    #subprocess.run(["libcamera-still", "-o", "Photos/test.jpg", "-t", "1", "--nopreview", "--hdr", "--width", "4608", "--height", "2592"], check=True)
 
     # Capture a photo using rpicam-jpeg
     #subprocess.run(["rpicam-jpeg", "--output", "Photos/test.jpg", "-t", "1000", "--width", "854", "--height", "480", "--hdr", "auto"], check=True)
