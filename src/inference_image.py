@@ -1,6 +1,13 @@
 """
 Camera input will be automatically downscaled to 1280 * 736 since using TensorRT .engine model.
+
+Why slow?
+3090
+Speed: 31.2ms preprocess, 3.6ms inference, 98.0ms postprocess per image at shape (1, 3, 736, 1280)
 """
+
+
+
 import cv2
 import torch
 import os
