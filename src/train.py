@@ -37,7 +37,7 @@ if __name__ == '__main__':
         # training must use square image size, stride of 32
         # rect=True enables auto padding
         # inference can use other aspect ratio
-                          imgsz=1280,
+                          imgsz=1280,       # Must be square, will auto pad black
                           rect=True,
                           cos_lr=True,        # Cosine Annealing, learning rate schedule
                           workers=7,          # CPU intensive, number of cores
