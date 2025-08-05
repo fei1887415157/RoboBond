@@ -35,9 +35,9 @@ match i:
 
 
 
-# Input image size the model was trained on
+# Input image size when running inference
 # [height, width]
-image_size = [720, 1280]
+image_size = [736, 1280]
 
 # GPU device to use for conversion (0 for the first GPU)
 device_id = 0
