@@ -6,6 +6,7 @@ It continuously captures frames, runs inference, draws bounding boxes for a spec
 class, and displays the output with an FPS counter.
 
 Press 'q' to quit the application.
+PyTorch 2.6.0 + CUDA 12.6
 """
 
 
@@ -20,15 +21,15 @@ from ultralytics import YOLO
 
 # --- CONFIGURATION ---
 # IMPORTANT: Update the model path before running the script
-MODEL_PATH = "../result/mAP 0.62/weights/FP16.engine"  # Path to your TensorRT engine file
+MODEL_PATH = "model/Finetuned Models/mAP 0.62/FP16.engine"  # Path to your TensorRT engine file
 CAMERA_INDEX = 0  # 0 for default USB camera, or the specific index of your camera
 CONFIDENCE_THRESHOLD = 0.5
 FONT = cv2.FONT_HERSHEY_PLAIN
 FONT_SCALE = 1
 FONT_THICKNESS = 1
-TARGET_CLASS_ID = 0
-TARGET_CLASS_COLOR = (0, 255, 0)  # Green for the target class boxes
-TEXT_COLOR = (0, 0, 0)  # Black for text for better contrast on green background
+TARGET_CLASS_ID = 0     # 0: Intersection, 1: Spacing (Rebar)
+TARGET_CLASS_COLOR = (0, 255, 0)  # Green
+TEXT_COLOR = (0, 0, 0)  # Black
 
 
 
