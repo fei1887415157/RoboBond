@@ -14,11 +14,14 @@ import torch
 import os
 import time
 from ultralytics import YOLO
+from arduino import ArduinoCommunicator  # Import the new class
 
 # --- CONFIGURATION ---
-MODEL_PATH = "../Finetuned Models/mAP 0.62/weights/FP32.engine"  # Path to your TensorRT engine file
+MODEL_PATH = "../Finetuned Models/mAP 0.63/weights/FP32.engine"  # Path to your TensorRT engine file
 CAMERA_INDEX = 1  # 0 for default USB camera, or the specific index of your camera
-CONFIDENCE_THRESHOLD = 0.3
+ARDUINO_PORT = "/dev/ttyACM0"     # Commonly "/dev/ttyACM0" or "/dev/ttyUSB0" on Jetson, or "COM5" on Windows
+ARDUINO_COOLDOWN = 2  # Seconds to wait between sending signals to the Arduino
+CONFIDENCE_THRESHOLD = 0.5
 FONT = cv2.FONT_HERSHEY_PLAIN
 FONT_SCALE = 1
 FONT_THICKNESS = 1
@@ -28,7 +31,7 @@ TEXT_COLOR = (0, 0, 0)  # Black
 ZOOM_FACTOR = 1.0 # The zoom level to apply
 
 # --- New Display Window Size Configuration ---
-DISPLAY_WIDTH = 720
+DISPLAY_WIDTH = 1000
 DISPLAY_HEIGHT = int(DISPLAY_WIDTH / (1920 / 1080))
 
 
@@ -86,11 +89,19 @@ def run_live_inference():
     print(f"Actual camera resolution: {frame_width}x{frame_height}")
     print(f"Actual camera FPS: {fps}")
 
+    # --- Initialize Arduino Communication ---
+    arduino = ArduinoCommunicator(port=ARDUINO_PORT)
+    arduino_connected = arduino.connect()
+    if not arduino_connected:
+        # The script can still run the camera feed without the Arduino
+        print("Warning: Could not connect to Arduino. Video inference will continue without it.")
+
 
     print("Camera opened successfully. Starting inference loop...")
 
     # --- 4. Real-time Inference Loop ---
     prev_time = 0
+    last_signal_time = 0  # Track when the last signal was sent to enforce a cooldown
     while True:
         # Read a frame from the camera
         success, frame = cap.read()
@@ -152,6 +163,13 @@ def run_live_inference():
             cv2.putText(annotated_frame, conf_text, (x1 + 2, y1 - baseline), FONT, FONT_SCALE, TEXT_COLOR,
                         FONT_THICKNESS, cv2.LINE_AA)
 
+        # --- Send Signal to Arduino with Cooldown ---
+        # If an object is detected, send a signal, but only if the cooldown period has passed.
+        if arduino_connected and len(result.boxes) > 0 and (time.time() - last_signal_time > ARDUINO_COOLDOWN):
+            print(f"Object detected. Sending 'DETECT' signal to Arduino on {ARDUINO_PORT}.")
+            arduino.send("DETECT\n")
+            last_signal_time = time.time()  # Reset the cooldown timer
+
         # --- Resize for Display ---
         # Resize the annotated frame to the desired display size
         display_frame = cv2.resize(annotated_frame, (DISPLAY_WIDTH, DISPLAY_HEIGHT), interpolation=cv2.INTER_LINEAR)
@@ -176,6 +194,9 @@ def run_live_inference():
 
     # --- 5. Cleanup ---
     print("Releasing resources.")
+    # Close the Arduino connection if it was successfully opened
+    if arduino_connected:
+        arduino.close()
     cap.release()
     cv2.destroyAllWindows()
 
