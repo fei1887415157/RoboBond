@@ -1,15 +1,13 @@
 """
 This script performs real-time object detection on a live video stream from a USB camera
-using a YOLOv12 model optimized with TensorRT (.engine).
+using a YOLOv12 Original Models optimized with TensorRT (.engine).
 
-It continuously captures frames, runs inference, draws bounding boxes for a specific
-class, and displays the output with an FPS counter.
+It continuously captures frames, applies a 2x digital zoom, runs inference,
+draws bounding boxes for a specific class, and displays the output with an FPS counter.
 
 Press 'q' to quit the application.
 PyTorch 2.6.0 + CUDA 12.6
 """
-
-
 
 import cv2
 import torch
@@ -17,134 +15,169 @@ import os
 import time
 from ultralytics import YOLO
 
-
-
 # --- CONFIGURATION ---
-# IMPORTANT: Update the model path before running the script
-MODEL_PATH = "model/Finetuned Models/mAP 0.62/FP16.engine"  # Path to your TensorRT engine file
-CAMERA_INDEX = 0  # 0 for default USB camera, or the specific index of your camera
-CONFIDENCE_THRESHOLD = 0.5
+MODEL_PATH = "../Finetuned Models/mAP 0.62/weights/FP32.engine"  # Path to your TensorRT engine file
+CAMERA_INDEX = 1  # 0 for default USB camera, or the specific index of your camera
+CONFIDENCE_THRESHOLD = 0.3
 FONT = cv2.FONT_HERSHEY_PLAIN
 FONT_SCALE = 1
 FONT_THICKNESS = 1
-TARGET_CLASS_ID = 0     # 0: Intersection, 1: Spacing (Rebar)
+TARGET_CLASS_ID = 0  # 0: Intersection, 1: Spacing (Rebar)
 TARGET_CLASS_COLOR = (0, 255, 0)  # Green
 TEXT_COLOR = (0, 0, 0)  # Black
+ZOOM_FACTOR = 1.0 # The zoom level to apply
 
+# --- New Display Window Size Configuration ---
+DISPLAY_WIDTH = 720
+DISPLAY_HEIGHT = int(DISPLAY_WIDTH / (1920 / 1080))
 
 
 def run_live_inference():
-	"""
-	Initializes a YOLOv12 model and runs real-time inference on a USB camera feed.
-	"""
-	# --- 1. Setup and Pre-run Checks ---
+    """
+    Initializes a YOLOv12 Original Models and runs real-time inference on a USB camera feed.
+    """
+    # --- 1. Setup and Pre-run Checks ---
 
-	# Check for CUDA availability for GPU acceleration
-	device = 'cuda' if torch.cuda.is_available() else 'cpu'
-	print(f"Using device: {device}")
+    # Check for CUDA availability for GPU acceleration
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f"Using device: {device}")
 
-	if device == 'cpu':
-		print("Warning: A TensorRT .engine model requires a CUDA-enabled GPU. This script will likely fail.")
-		return
+    if device == 'cpu' and MODEL_PATH.endswith('.engine'):
+        print("Error: A TensorRT .engine model requires a CUDA-enabled GPU and cannot run on CPU. Exiting.")
+        return
+    elif device == 'cpu':
+        print("Warning: No CUDA-enabled GPU found. Inference will run on the CPU, which may be slow.")
 
-	# Check if the model file exists
-	if not os.path.exists(MODEL_PATH):
-		print(f"Error: Model file not found at '{MODEL_PATH}'")
-		return
+    # Check if the Original Models file exists
+    if not os.path.exists(MODEL_PATH):
+        print(f"Error: Model file not found at '{MODEL_PATH}'")
+        return
 
-	# --- 2. Load Model ---
-	try:
-		# For exported models like .engine or .onnx, you MUST specify the task.
-		print(f"Loading TensorRT model from {MODEL_PATH} for detection task...")
-		model = YOLO(MODEL_PATH, task='detect')
-		print("Model loaded successfully.")
-	except Exception as e:
-		print(f"Error loading model: {e}")
-		return
+    # --- 2. Load Model ---
+    try:
+        # For exported models like .engine or .onnx, you MUST specify the task.
+        print(f"Loading model from {MODEL_PATH} for detection task...")
+        model = YOLO(MODEL_PATH, task='detect')
+        print("Model loaded successfully.")
+    except Exception as e:
+        print(f"Error loading Original Models: {e}")
+        return
 
-	# --- 3. Initialize Video Capture ---
-	print(f"Opening camera at index {CAMERA_INDEX}...")
-	cap = cv2.VideoCapture(CAMERA_INDEX)
+    # --- 3. Initialize Video Capture ---
+    print(f"Opening camera at index {CAMERA_INDEX}...")
+    cap = cv2.VideoCapture(CAMERA_INDEX)
 
-	if not cap.isOpened():
-		print(f"Error: Could not open camera at index {CAMERA_INDEX}.")
-		print("Please check if the camera is connected and the index is correct.")
-		return
+    if not cap.isOpened():
+        print(f"Error: Could not open camera at index {CAMERA_INDEX}.")
+        print("Please check if the camera is connected and the index is correct.")
+        return
 
-	# Optional: Set camera properties like resolution. Note that the model will resize
-	# the input anyway, but this can help stabilize the input stream.
-	# cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-	# cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-	print("Camera opened successfully. Starting inference loop...")
+    # --- Set desired camera properties ---
+    # Note: This is a request. The camera will use the closest supported resolution.
+    print("Requesting 1920 * 1080 @ 30fps...")
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+    cap.set(cv2.CAP_PROP_FPS, 30)
 
-	# --- 4. Real-time Inference Loop ---
-	prev_time = 0
-	while True:
-		# Read a frame from the camera
-		success, frame = cap.read()
-		if not success:
-			print("Failed to grab frame. End of stream or camera disconnected.")
-			break
-
-		# --- Perform Optimized Inference ---
-		# The model will handle resizing the frame to its expected input size (e.g., 1280x736)
-		results = model.predict(frame, conf=CONFIDENCE_THRESHOLD, device=device, classes=[TARGET_CLASS_ID],
-		                        verbose=False)
-
-		# Get the result object for the current frame
-		result = results[0]
-
-		# Create a copy of the frame to draw on
-		annotated_frame = frame.copy()
-
-		# --- Process Detections and Draw Custom Annotations ---
-		for box in result.boxes:
-			# Extract bounding box coordinates and confidence
-			x1, y1, x2, y2 = map(int, box.xyxy[0])
-			confidence = float(box.conf[0])
-			conf_text = f'{confidence:.2f}'
-
-			# Calculate text size for the background rectangle
-			(text_width, text_height), baseline = cv2.getTextSize(conf_text, FONT, FONT_SCALE, FONT_THICKNESS)
-
-			# Draw the bounding box rectangle on the frame
-			cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), TARGET_CLASS_COLOR, 2)
-
-			# --- Draw a filled rectangle as a background for the confidence text ---
-			# Position the background rectangle just above the main bounding box
-			text_bg_y1 = y1 - text_height - baseline - 4
-			text_bg_y2 = y1  # End at the top of the bounding box
-
-			# Draw the filled rectangle
-			cv2.rectangle(annotated_frame, (x1, text_bg_y1), (x1 + text_width + 4, text_bg_y2), TARGET_CLASS_COLOR, -1)
-
-			# Put the confidence text on the background
-			cv2.putText(annotated_frame, conf_text, (x1 + 2, y1 - baseline), FONT, FONT_SCALE, TEXT_COLOR,
-			            FONT_THICKNESS, cv2.LINE_AA)
-
-		# --- Calculate and Display FPS ---
-		curr_time = time.time()
-		# Avoid division by zero on the first frame
-		if prev_time > 0:
-			fps = 1 / (curr_time - prev_time)
-			cv2.putText(annotated_frame, f"FPS: {int(fps)}", (10, 30), FONT, 1, (0, 0, 255), 2)
-		prev_time = curr_time
-
-		# --- Display the Result ---
-		cv2.imshow('YOLOv12 Live Inference', annotated_frame)
-
-		# --- Exit Condition ---
-		# Wait for 1ms and check if the 'q' key was pressed
-		if cv2.waitKey(1) & 0xFF == ord('q'):
-			print("'q' pressed. Exiting...")
-			break
-
-	# --- 5. Cleanup ---
-	print("Releasing resources.")
-	cap.release()
-	cv2.destroyAllWindows()
+    # --- Get and print actual camera properties ---
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    print(f"Actual camera resolution: {frame_width}x{frame_height}")
+    print(f"Actual camera FPS: {fps}")
 
 
+    print("Camera opened successfully. Starting inference loop...")
+
+    # --- 4. Real-time Inference Loop ---
+    prev_time = 0
+    while True:
+        # Read a frame from the camera
+        success, frame = cap.read()
+        if not success:
+            print("Failed to grab frame. End of stream or camera disconnected.")
+            break
+
+        # --- START: ZOOM LOGIC ---
+        # Get original frame dimensions
+        h, w, _ = frame.shape
+
+        # Calculate the dimensions of the cropped area
+        crop_w = int(w / ZOOM_FACTOR)
+        crop_h = int(h / ZOOM_FACTOR)
+
+        # Calculate the top-left corner of the crop to keep it centered
+        crop_x = (w - crop_w) // 2
+        crop_y = (h - crop_h) // 2
+
+        # Crop the frame to the center to create the zoomed-in view
+        zoomed_frame = frame[crop_y:crop_y + crop_h, crop_x:crop_x + crop_w]
+        # --- END: ZOOM LOGIC ---
+
+        # --- Perform Optimized Inference on the ZOOMED frame ---
+        # The Original Models will handle resizing the frame to its expected input size
+        results = model.predict(zoomed_frame, conf=CONFIDENCE_THRESHOLD, device=device, classes=[TARGET_CLASS_ID],
+                                verbose=False)
+
+        # Get the Finetuned Models object for the current frame
+        result = results[0]
+
+        # Create a copy of the zoomed frame to draw on.
+        # We draw on the smaller cropped frame for efficiency before resizing.
+        annotated_frame = zoomed_frame.copy()
+
+        # --- Process Detections and Draw Custom Annotations ---
+        # Bounding box coordinates are relative to the `zoomed_frame`
+        for box in result.boxes:
+            # Extract bounding box coordinates and confidence
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            confidence = float(box.conf[0])
+            conf_text = f'{confidence:.2f}'
+
+            # Calculate text size for the background rectangle
+            (text_width, text_height), baseline = cv2.getTextSize(conf_text, FONT, FONT_SCALE, FONT_THICKNESS)
+
+            # Draw the bounding box rectangle on the frame
+            cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), TARGET_CLASS_COLOR, 2)
+
+            # --- Draw a filled rectangle as a background for the confidence text ---
+            # Position the background rectangle just above the main bounding box
+            text_bg_y1 = y1 - text_height - baseline - 4
+            text_bg_y2 = y1  # End at the top of the bounding box
+
+            # Draw the filled rectangle
+            cv2.rectangle(annotated_frame, (x1, text_bg_y1), (x1 + text_width + 4, text_bg_y2), TARGET_CLASS_COLOR, -1)
+
+            # Put the confidence text on the background
+            cv2.putText(annotated_frame, conf_text, (x1 + 2, y1 - baseline), FONT, FONT_SCALE, TEXT_COLOR,
+                        FONT_THICKNESS, cv2.LINE_AA)
+
+        # --- Resize for Display ---
+        # Resize the annotated frame to the desired display size
+        display_frame = cv2.resize(annotated_frame, (DISPLAY_WIDTH, DISPLAY_HEIGHT), interpolation=cv2.INTER_LINEAR)
+
+        # --- Calculate and Display FPS ---
+        curr_time = time.time()
+        # Avoid division by zero on the first frame
+        if prev_time > 0:
+            fps = 1 / (curr_time - prev_time)
+            # Draw FPS on the final, resized frame
+            cv2.putText(display_frame, f"FPS: {int(fps)}", (10, 30), FONT, 2, (0, 0, 255), 2)
+        prev_time = curr_time
+
+        # --- Display the Result ---
+        cv2.imshow('YOLOv12 Live Inference', display_frame)
+
+        # --- Exit Condition ---
+        # Wait for 1ms and check if the 'q' key was pressed
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            print("'q' pressed. Exiting...")
+            break
+
+    # --- 5. Cleanup ---
+    print("Releasing resources.")
+    cap.release()
+    cv2.destroyAllWindows()
 
 if __name__ == '__main__':
-	run_live_inference()
+    run_live_inference()

@@ -12,12 +12,12 @@ from ultralytics import YOLO
 
 
 
-# Use small model since dataset is small
-model = YOLO("../model/yolov12n.pt")  # load a pretrained model (recommended for training)
+# Use small Original Models since dataset is small
+model = YOLO("../Original Models/yolov12n.pt")  # load a pretrained Original Models (recommended for training)
 
 
 
-# Train / Fine-Tune the model
+# Train / Fine-Tune the Original Models
 if __name__ == '__main__':
     # original resolution: 1280 * 720
 
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     # default learning rate: determined by AdamW, 0.001667
     # default momentum: determined by AdamW, 0.9
     results = model.train(data="F:/JetBrains/PycharmProjects/RoboBond/dataset/data.yaml",
-                          project="../result",
+                          project="../Finetuned Models",
                           pretrained=True,
                           epochs=100,
                           patience=10,

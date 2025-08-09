@@ -1,5 +1,5 @@
 """
-Camera input will be automatically downscaled to 1280 * 736 since using TensorRT .engine model.
+Camera input will be automatically downscaled to 1280 * 736 since using TensorRT .engine Original Models.
 
 Why slow?
 3090
@@ -17,7 +17,7 @@ from ultralytics import YOLO
 
 # --- CONFIGURATION ---
 # IMPORTANT: Update these paths before running the script
-MODEL_PATH = "../result/mAP 0.62/weights/FP16.engine"  # Path to your TensorRT engine file
+MODEL_PATH = "../Finetuned Models/mAP 0.62/weights/FP16.engine"  # Path to your TensorRT engine file
 IMAGE_PATH = "rebar.jpg"  # Path to your input image
 OUTPUT_PATH = "predict.jpg"  # Path to save the output image
 CONFIDENCE_THRESHOLD = 0.5
@@ -33,8 +33,8 @@ TARGET_CLASS_COLOR = (0, 255, 0)  # Green
 
 def run_optimized_inference():
 	"""
-	Loads a YOLO model, performs optimized inference on an image by filtering classes
-	on the GPU, draws custom bounding boxes, adds padding, and saves the result.
+	Loads a YOLO Original Models, performs optimized inference on an image by filtering classes
+	on the GPU, draws custom bounding boxes, adds padding, and saves the Finetuned Models.
 	"""
 	# --- 1. Setup and Pre-run Checks ---
 
@@ -43,10 +43,10 @@ def run_optimized_inference():
 	print(f"Using device: {device}")
 
 	if device == 'cpu':
-		print("Warning: A TensorRT .engine model requires a CUDA-enabled GPU. This script will likely fail.")
+		print("Warning: A TensorRT .engine Original Models requires a CUDA-enabled GPU. This script will likely fail.")
 		return
 
-	# Check if the model file exists
+	# Check if the Original Models file exists
 	if not os.path.exists(MODEL_PATH):
 		print(f"Error: Model file not found at '{MODEL_PATH}'")
 		return
@@ -66,10 +66,10 @@ def run_optimized_inference():
 	# --- 3. Load Model ---
 	try:
 		# For exported models like .engine or .onnx, you MUST specify the task.
-		print(f"Loading TensorRT model from {MODEL_PATH} for detection task...")
+		print(f"Loading TensorRT Original Models from {MODEL_PATH} for detection task...")
 		model = YOLO(MODEL_PATH, task='detect')
 	except Exception as e:
-		print(f"Error loading model: {e}")
+		print(f"Error loading Original Models: {e}")
 		return
 
 	# --- 4. Perform Optimized Inference ---
@@ -80,7 +80,7 @@ def run_optimized_inference():
 
 	print("Inference complete.")
 
-	# Get the result object for our single image
+	# Get the Finetuned Models object for our single image
 	result = results[0]
 
 	# Create a copy of the original image to draw on
