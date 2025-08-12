@@ -22,7 +22,7 @@ import torch
 
 
 # --- Configuration ---
-model_path = "../Finetuned Models/mAP 0.63/weights/best.pt"
+model_path = "../model/Finetuned Models/mAP 0.63/weights/best.pt"
 # Only convert one at a time to prevent overwriting
 print("1: FP32 \t 2: FP16 \t 3: INT8")
 print("Input: ")
