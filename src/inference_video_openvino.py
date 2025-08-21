@@ -10,7 +10,7 @@ ARDUINO_COOLDOWN = 5  # Seconds to wait between sending signals to the Arduino
 # Path to your fine-tuned PyTorch model (.pt file)
 MODEL_PATH = "../model/Finetuned Models/mAP 0.63/weights/best_fp32_openvino_model"
 # Confidence threshold for detections
-CONFIDENCE_THRESHOLD = 0.6
+CONFIDENCE_THRESHOLD = 0.5
 # Index of the camera to use (0 is usually the default webcam)
 CAMERA_INDEX = 1
 # Target class ID for inference
@@ -20,13 +20,16 @@ BOX_COLOR = (0, 255, 0)
 # Bounding box thickness
 BOX_THICKNESS = 5
 # --- MODIFICATION: Center detection parameters ---
-CENTER_TOLERANCE_PX = 100
+CENTER_TOLERANCE_PX = 200
 CENTER_BOX_COLOR = (255, 255, 0)  # Cyan for centered objects
 # FPS counter text color (Red in BGR format)
 FPS_COLOR = (0, 0, 255)
 # --- MODIFICATION: Define display window size ---
 DISPLAY_WIDTH = 800
 DISPLAY_HEIGHT = int (DISPLAY_WIDTH / 16 * 9)
+# --- MODIFICATION: Add crop configuration ---
+ENABLE_CROP = True
+CROP_FACTOR = 1.0  # 2.0 means 2x crop (half width, half height)
 
 
 # --- Load the exported OpenVINO model ---
@@ -93,6 +96,20 @@ while True:
     if not ret:
         print("Error: Can't receive frame (stream end?). Exiting ...")
         break
+
+    # --- MODIFICATION: Apply crop to the frame ---
+    if ENABLE_CROP:
+        orig_h, orig_w, _ = frame.shape
+        # Calculate the new dimensions for the cropped frame
+        crop_w = int(orig_w / CROP_FACTOR)
+        crop_h = int(orig_h / CROP_FACTOR)
+
+        # Calculate top-left corner of the crop area to keep it centered
+        start_x = (orig_w - crop_w) // 2
+        start_y = (orig_h - crop_h) // 2
+
+        # Perform the crop using numpy slicing
+        frame = frame[start_y:start_y + crop_h, start_x:start_x + crop_w]
 
     # Run inference on the current frame using the OpenVINO model.
     try:
