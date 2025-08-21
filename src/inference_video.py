@@ -17,9 +17,9 @@ from ultralytics import YOLO
 from arduino import ArduinoCommunicator  # Import the new class
 
 # --- CONFIGURATION ---
-MODEL_PATH = "../Finetuned Models/mAP 0.63/weights/FP32.engine"  # Path to your TensorRT engine file
+MODEL_PATH = "../model/Finetuned Models/mAP 0.63/weights/FP32.engine"  # Path to your TensorRT engine file
 CAMERA_INDEX = 1  # 0 for default USB camera, or the specific index of your camera
-ARDUINO_PORT = "/dev/ttyACM0"     # Commonly "/dev/ttyACM0" or "/dev/ttyUSB0" on Jetson, or "COM5" on Windows
+ARDUINO_PORT = "COM5"     # Commonly "/dev/ttyACM0" or "/dev/ttyUSB0" on Jetson, or "COM5" on Windows
 ARDUINO_COOLDOWN = 2  # Seconds to wait between sending signals to the Arduino
 CONFIDENCE_THRESHOLD = 0.5
 FONT = cv2.FONT_HERSHEY_PLAIN
