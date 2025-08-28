@@ -10,7 +10,7 @@ ARDUINO_COOLDOWN = 5  # Seconds to wait between sending signals to the Arduino
 # Path to your fine-tuned PyTorch model (.pt file)
 MODEL_PATH = "../model/Finetuned Models/mAP 0.63/weights/best_fp32_openvino_model"
 # Confidence threshold for detections
-CONFIDENCE_THRESHOLD = 0.5
+CONFIDENCE_THRESHOLD = 0.4
 # Index of the camera to use (0 is usually the default webcam)
 CAMERA_INDEX = 1
 # Target class ID for inference
